@@ -1,0 +1,29 @@
+// pakcage.json
+{
+  "name": "whatsapp-group-moderator",
+  "version": "1.0.0",
+  "description": "WhatsApp bot to moderate group links and manage banned users.",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "moderator",
+    "node.js",
+    "render.com"
+  ],
+  "author": "DEV WEB IA",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.23.0",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}
