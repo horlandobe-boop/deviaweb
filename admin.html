@@ -1,0 +1,210 @@
+<!-- admin.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Bot Admin Interface</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e0f2f7;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 30px auto;
+            background-color: #ffffff;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid #dcdcdc;
+        }
+        h1 {
+            color: #1a73e8;
+            text-align: center;
+            margin-bottom: 35px;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+        h2 {
+            color: #424242;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 12px;
+            font-size: 1.8em;
+            font-weight: 600;
+        }
+        #status {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            background-color: #fcefdc;
+            color: #e67700;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        }
+        #status.connected {
+            background-color: #e6ffed;
+            color: #388e3c;
+        }
+        #userList {
+            list-style: none;
+            padding: 0;
+        }
+        #userList li {
+            background-color: #f8f8f8;
+            border: 1px solid #eeeeee;
+            margin-bottom: 12px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+        #userList li:hover {
+            background-color: #f0f0f0;
+            transform: translateY(-2px);
+        }
+        #userList li span {
+            font-weight: 600;
+            color: #212121;
+            font-size: 1.1em;
+        }
+        .unban-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .unban-btn:hover {
+            background-color: #43a047;
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        .unban-btn:disabled {
+            background-color: #a5d6a7;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .no-users {
+            text-align: center;
+            padding: 25px;
+            color: #757575;
+            font-style: italic;
+            background-color: #fdfdfd;
+            border-radius: 8px;
+            border: 1px dashed #cfcfcf;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WhatsApp Bot Admin Dashboard</h1>
+        <div id="status">Connecting to Bot...</div>
+
+        <h2>Blocked Users</h2>
+        <ul id="userList">
+            <li class="no-users">No blocked users at the moment.</li>
+        </ul>
+    </div>
+
+    <script>
+        // Mampifandray amin'ny WebSocket server
+        // Raha any amin'ny Render.com, dia ampiasao ny `window.location.hostname` ho an'ny WebSocket
+        const WEB_SOCKET_URL = `ws${window.location.protocol === 'https:' ? 's' : ''}://${window.location.host}`;
+        let socket;
+
+        const statusDiv = document.getElementById('status');
+        const userList = document.getElementById('userList');
+
+        function connectWebSocket() {
+            socket = new WebSocket(WEB_SOCKET_URL);
+
+            socket.onopen = () => {
+                console.log('Connected to WebSocket server');
+                statusDiv.textContent = 'Connected to Bot';
+                statusDiv.classList.add('connected');
+            };
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'banned_users') {
+                    updateBannedUserList(data.users);
+                }
+            };
+
+            socket.onclose = () => {
+                console.log('Disconnected from WebSocket server');
+                statusDiv.textContent = 'Disconnected from Bot (Reconnecting...)';
+                statusDiv.classList.remove('connected');
+                // Miezaka mamerina mampifandray rehefa misy fifandraisana tapaka
+                setTimeout(connectWebSocket, 5000); // Mamerina mampifandray aorian'ny 5 sekoondra
+            };
+
+            socket.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                statusDiv.textContent = 'WebSocket Error! Check console.';
+                statusDiv.classList.remove('connected');
+                socket.close(); // Hamerina hamerin-kitsika ny onclose ary hamerina mampifandray
+            };
+        }
+
+        // Manomboka ny fifandraisana WebSocket
+        connectWebSocket();
+
+        // Manavao ny lisitry ny mpikambana voarara ao amin'ny interface
+        function updateBannedUserList(users) {
+            userList.innerHTML = ''; // Fafana aloha ny lisitra ankehitriny
+            if (users.length === 0) {
+                userList.innerHTML = '<li class="no-users">No blocked users at the moment.</li>';
+                return;
+            }
+            users.forEach(userId => {
+                const li = document.createElement('li');
+                // Alaina ny nomerao fotsiny tsy misy @c.us na @g.us
+                const whatsappNumber = userId.split('@')[0]; 
+                li.innerHTML = `
+                    <span>${whatsappNumber}</span>
+                    <button class="unban-btn" data-userid="${userId}">Unblock</button>
+                `;
+                userList.appendChild(li);
+            });
+        }
+
+        // Mihaino ny tsindry bokotra "Unblock"
+        userList.addEventListener('click', (event) => {
+            if (event.target.classList.contains('unban-btn')) {
+                const userId = event.target.dataset.userid;
+                if (confirm(`Are you sure you want to unblock ${userId.split('@')[0]}?`)) {
+                    sendUnbanRequest(userId);
+                    // Atovona fanalahidy ho disabled izy mandra-pahavitan'ny asa
+                    event.target.disabled = true; 
+                    event.target.textContent = 'Unblocking...';
+                }
+            }
+        });
+
+        // Mandefa fangatahana "unban" any amin'ny bot amin'ny alalan'ny WebSocket
+        function sendUnbanRequest(userId) {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ type: 'unban_user', userId: userId }));
+            } else {
+                alert('WebSocket is not connected. Please refresh the page or check the bot server.');
+            }
+        }
+    </script>
+</body>
+</html>
